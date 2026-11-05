@@ -1,3 +1,5 @@
+> **Este fork foi arquivado e não recebe mais atualizações.** O desenvolvimento continua no DS5 Printer Service, em um repositório privado da DS5.
+
 # open-escpos-print-service
 
 This is an Android app that provides a [PrintService](https://developer.android.com/reference/android/printservice/PrintService) for label and receipt printers.
