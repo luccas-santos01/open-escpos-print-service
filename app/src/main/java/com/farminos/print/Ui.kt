@@ -2,33 +2,47 @@ package com.farminos.print
 
 import android.content.Intent
 import android.provider.Settings.ACTION_BLUETOOTH_SETTINGS
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,12 +51,97 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.farminos.print.driver.closeDriverUuid
-import com.farminos.print.ui.theme.OpenESCPOSPrintServiceTheme
+import com.farminos.print.ui.theme.DS5PrinterServiceTheme
+
+private val FIELD_MAX_WIDTH = 220.dp
+
+@Composable
+fun AppHeader() {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 2.dp,
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ds5_symbol_header),
+                contentDescription = null,
+                modifier = Modifier.size(36.dp),
+            )
+            Spacer(modifier = Modifier.width(14.dp))
+            Column {
+                Text(
+                    text = "DS5 PRINTER SERVICE",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Light,
+                    letterSpacing = 3.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Configuração das impressoras",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SectionTitle(
+    @DrawableRes icon: Int,
+    text: String,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 6.dp, end = 6.dp, top = 20.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            painter = painterResource(id = icon),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text.uppercase(),
+            style = MaterialTheme.typography.titleSmall,
+            letterSpacing = 1.5.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+fun EmptyMessage(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 6.dp, vertical = 8.dp),
+    )
+}
 
 @Composable
 fun ExpandableCard(
@@ -58,7 +157,7 @@ fun ExpandableCard(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(10.dp)
+                .padding(vertical = 5.dp)
                 .animateContentSize(
                     animationSpec =
                         tween(
@@ -66,6 +165,9 @@ fun ExpandableCard(
                             easing = LinearOutSlowInEasing,
                         ),
                 ),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         onClick = {
             open = !open
         },
@@ -74,26 +176,27 @@ fun ExpandableCard(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(10.dp),
+                    .padding(14.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                header()
-                IconButton(
-                    modifier = Modifier.rotate(rotation),
-                    onClick = {
-                        open = !open
-                    },
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.arrow_drop_down_24px),
-                        contentDescription = "drop down arrow",
-                    )
+                Box(modifier = Modifier.weight(1f)) {
+                    header()
                 }
+                Icon(
+                    painter = painterResource(id = R.drawable.arrow_drop_down_24px),
+                    contentDescription = if (open) "Recolher" else "Expandir",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.rotate(rotation),
+                )
             }
             if (open) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 12.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
                 content()
             }
         }
@@ -106,6 +209,31 @@ data class Option(
 )
 
 @Composable
+fun SettingRow(
+    label: String,
+    control: @Composable () -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .padding(end = 12.dp),
+        )
+        control()
+    }
+}
+
+@Composable
 fun MenuSelect(
     label: String,
     options: Array<Option>,
@@ -115,23 +243,19 @@ fun MenuSelect(
     var expanded by remember { mutableStateOf(false) }
     val selectedOption = options.find { it.value == selectedValue }
 
-    return Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(text = label)
-        Box {
-            TextField(
+    SettingRow(label = label) {
+        Box(modifier = Modifier.widthIn(max = FIELD_MAX_WIDTH)) {
+            OutlinedTextField(
                 value = selectedOption?.label ?: "",
                 onValueChange = {
                     // noop
                 },
                 readOnly = true,
+                singleLine = true,
                 trailingIcon = {
                     Icon(
                         painter = painterResource(id = R.drawable.arrow_drop_down_24px),
-                        contentDescription = "expand driver select menu",
+                        contentDescription = "Abrir opções",
                     )
                 },
             )
@@ -175,12 +299,7 @@ fun LabelledSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(text = label)
+    SettingRow(label = label) {
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
@@ -197,14 +316,11 @@ fun <T> LabelledTextField(
     keyboardType: KeyboardType = KeyboardType.Number,
 ) {
     var valueState by remember { mutableStateOf(value) }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(text = label)
-        TextField(
+    SettingRow(label = label) {
+        OutlinedTextField(
+            modifier = Modifier.widthIn(max = FIELD_MAX_WIDTH),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            singleLine = true,
             value = valueState,
             onValueChange = {
                 valueState = it
@@ -219,28 +335,105 @@ fun <T> LabelledTextField(
 }
 
 @Composable
+fun StatusTag(
+    text: String,
+    highlighted: Boolean,
+) {
+    val colors = MaterialTheme.colorScheme
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = if (highlighted) colors.onPrimaryContainer else colors.onSecondaryContainer,
+        modifier =
+            Modifier
+                .clip(CircleShape)
+                .background(if (highlighted) colors.primaryContainer else colors.secondaryContainer)
+                .padding(horizontal = 8.dp, vertical = 2.dp),
+    )
+}
+
+@Composable
+fun PrinterHeader(
+    @DrawableRes icon: Int,
+    settings: PrinterSettings,
+    isDefault: Boolean,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier =
+                Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (settings.enabled) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.secondaryContainer
+                        },
+                    ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(id = icon),
+                contentDescription = null,
+                tint =
+                    if (settings.enabled) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = settings.name.ifBlank { "Sem nome" },
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (isDefault) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    StatusTag(text = "Padrão", highlighted = true)
+                } else if (!settings.enabled) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    StatusTag(text = "Desativada", highlighted = false)
+                }
+            }
+            Text(
+                text = settings.address.ifBlank { "Sem endereço" },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
 fun PrinterCard(
     context: PrintActivity,
     uuid: String,
     settings: PrinterSettings,
     defaultPrinterAddress: String,
+    @DrawableRes icon: Int,
 ) {
     ExpandableCard(
         header = {
-            Column {
-                Text(
-                    text = settings.name,
-                )
-                Text(
-                    text = settings.address,
-                    color = MaterialTheme.colorScheme.secondary,
-                )
-            }
+            PrinterHeader(
+                icon = icon,
+                settings = settings,
+                isDefault = uuid == defaultPrinterAddress,
+            )
         },
         content = {
             Column {
                 LabelledSwitch(
-                    label = "Enabled",
+                    label = "Ativada",
                     checked = settings.enabled,
                     onCheckedChange = { enabled ->
                         context.updatePrinterSetting(uuid = uuid) {
@@ -253,7 +446,7 @@ fun PrinterCard(
                     },
                 )
                 LabelledSwitch(
-                    label = "Default printer",
+                    label = "Impressora padrão",
                     checked = uuid == defaultPrinterAddress,
                     onCheckedChange = { isDefault ->
                         if (isDefault) {
@@ -266,7 +459,7 @@ fun PrinterCard(
                     },
                 )
                 LabelledSwitch(
-                    label = "Keep connection alive",
+                    label = "Manter conexão aberta",
                     checked = settings.keepAlive,
                     onCheckedChange = { keepAlive ->
                         context.updatePrinterSetting(uuid = uuid) {
@@ -281,7 +474,7 @@ fun PrinterCard(
                 )
                 if (settings.`interface` == Interface.TCP_IP) {
                     LabelledTextField(
-                        label = "Name",
+                        label = "Nome",
                         value = settings.name,
                         transform = { name ->
                             name
@@ -294,7 +487,7 @@ fun PrinterCard(
                         keyboardType = KeyboardType.Text,
                     )
                     LabelledTextField(
-                        label = "Address and port",
+                        label = "Endereço e porta",
                         value = settings.address,
                         transform = { address ->
                             address
@@ -304,17 +497,8 @@ fun PrinterCard(
                                 it.setAddress(address)
                             }
                         },
-                        keyboardType = KeyboardType.Text,
+                        keyboardType = KeyboardType.Uri,
                     )
-                }
-                Button(
-                    onClick = {
-                        context.deletePrinterSetting(uuid)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.elevatedButtonColors(),
-                ) {
-                    Text(text = "Delete this printer")
                 }
                 MenuSelect(
                     label = "Driver",
@@ -332,11 +516,11 @@ fun PrinterCard(
                     },
                 )
                 MenuSelect(
-                    label = "Media type",
+                    label = "Tipo de mídia",
                     options =
                         arrayOf(
-                            Option(value = 0, label = "Receipt"),
-                            Option(value = 1, label = "Label"),
+                            Option(value = 0, label = "Bobina"),
+                            Option(value = 1, label = "Etiqueta"),
                         ),
                     selectedValue = if (settings.cut) 1 else 0,
                     onSelect = { value ->
@@ -346,11 +530,11 @@ fun PrinterCard(
                     },
                 )
                 MenuSelect(
-                    label = "Dithering",
+                    label = "Pontilhado (dithering)",
                     options =
                         arrayOf(
-                            Option(value = Dithering.NONE_VALUE, label = "None"),
-                            Option(value = Dithering.GRADIENT_VALUE, label = "Gradient"),
+                            Option(value = Dithering.NONE_VALUE, label = "Nenhum"),
+                            Option(value = Dithering.GRADIENT_VALUE, label = "Gradiente"),
                             Option(value = Dithering.FLOYD_STEINBERG_VALUE, label = "Floyd-Steinberg"),
                             Option(value = Dithering.ATKINSON_VALUE, label = "Atkinson"),
                         ),
@@ -362,7 +546,7 @@ fun PrinterCard(
                     },
                 )
                 LabelledTextField(
-                    label = "DPI",
+                    label = "Resolução (DPI)",
                     value = settings.dpi.toString(),
                     transform = { dpi ->
                         dpi.toIntOrNull()
@@ -374,7 +558,7 @@ fun PrinterCard(
                     },
                 )
                 LabelledTextField(
-                    label = "Paper width (cm)",
+                    label = "Largura do papel (cm)",
                     value = settings.width.toString(),
                     transform = { value ->
                         value.toFloatOrNull()
@@ -386,7 +570,7 @@ fun PrinterCard(
                     },
                 )
                 LabelledTextField(
-                    label = "Paper height (cm)",
+                    label = "Altura do papel (cm)",
                     value = settings.height.toString(),
                     transform = { value ->
                         value.toFloatOrNull()
@@ -398,7 +582,7 @@ fun PrinterCard(
                     },
                 )
                 LabelledTextField(
-                    label = "Left margin (cm)",
+                    label = "Margem esquerda (cm)",
                     value = settings.marginLeft.toString(),
                     transform = { cm ->
                         cm.toFloatOrNull()
@@ -410,7 +594,7 @@ fun PrinterCard(
                     },
                 )
                 LabelledTextField(
-                    label = "Top margin (cm)",
+                    label = "Margem superior (cm)",
                     value = settings.marginTop.toString(),
                     transform = { cm ->
                         cm.toFloatOrNull()
@@ -422,7 +606,7 @@ fun PrinterCard(
                     },
                 )
                 LabelledTextField(
-                    label = "Right margin (cm)",
+                    label = "Margem direita (cm)",
                     value = settings.marginRight.toString(),
                     transform = { cm ->
                         cm.toFloatOrNull()
@@ -434,7 +618,7 @@ fun PrinterCard(
                     },
                 )
                 LabelledTextField(
-                    label = "Bottom margin (cm)",
+                    label = "Margem inferior (cm)",
                     value = settings.marginBottom.toString(),
                     transform = { cm ->
                         cm.toFloatOrNull()
@@ -446,7 +630,7 @@ fun PrinterCard(
                     },
                 )
                 LabelledTextField(
-                    label = "Speed limit (cm/s)",
+                    label = "Limite de velocidade (cm/s)",
                     value = settings.speedLimit.toString(),
                     transform = { speedLimit ->
                         speedLimit.toFloatOrNull()
@@ -458,7 +642,7 @@ fun PrinterCard(
                     },
                 )
                 LabelledTextField(
-                    label = "Delay per label (s)",
+                    label = "Pausa por etiqueta (s)",
                     value = settings.cutDelay.toString(),
                     transform = { cutDelay ->
                         cutDelay.toFloatOrNull()
@@ -470,7 +654,7 @@ fun PrinterCard(
                     },
                 )
                 LabelledSwitch(
-                    label = "Skip white space at page end",
+                    label = "Ignorar espaço em branco no fim da página",
                     checked = settings.skipWhiteLinesAtPageEnd,
                     onCheckedChange = { skipWhiteLinesAtPageEnd ->
                         context.updatePrinterSetting(uuid = uuid) {
@@ -478,14 +662,29 @@ fun PrinterCard(
                         }
                     },
                 )
+                Spacer(modifier = Modifier.height(12.dp))
                 Button(
                     onClick = {
                         context.printTestPage(uuid)
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.elevatedButtonColors(),
                 ) {
-                    Text(text = "Print test page")
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_printer_24),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Imprimir página de teste")
+                }
+                OutlinedButton(
+                    onClick = {
+                        context.deletePrinterSetting(uuid)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) {
+                    Text(text = "Excluir esta impressora")
                 }
             }
         },
@@ -498,129 +697,127 @@ fun SettingsScreen(context: PrintActivity) {
     val bluetoothAllowed by context.bluetoothAllowed.collectAsState()
     val bluetoothEnabled by context.bluetoothEnabled.collectAsState()
 
-    OpenESCPOSPrintServiceTheme {
+    DS5PrinterServiceTheme {
         Surface(
-            modifier =
-                Modifier
-                    .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background,
         ) {
-            Column(
-                verticalArrangement = Arrangement.Top,
-                modifier =
-                    Modifier.verticalScroll(
-                        rememberScrollState(),
-                    ),
-            ) {
-                Text(
-                    "Bluetooth printers",
-                    style = MaterialTheme.typography.headlineMedium,
+            Column(modifier = Modifier.fillMaxSize()) {
+                AppHeader()
+                Column(
+                    verticalArrangement = Arrangement.Top,
                     modifier =
                         Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp),
-                )
-                if (!bluetoothAllowed) {
-                    Button(
-                        onClick = {
-                            context.requestBluetoothPermissions()
-                        },
-                        modifier = Modifier.fillMaxWidth().padding(10.dp),
-                    ) {
-                        Text(text = "Request bluetooth permissions")
+                            .weight(1f)
+                            .imePadding()
+                            .verticalScroll(rememberScrollState())
+                            .navigationBarsPadding()
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                ) {
+                    SectionTitle(icon = R.drawable.ic_wifi_24, text = "Impressoras de rede")
+                    val networkPrinters = settings.printersMap.filter { it.value.`interface` == Interface.TCP_IP }
+                    if (networkPrinters.isEmpty()) {
+                        EmptyMessage("Nenhuma impressora de rede cadastrada.")
                     }
-                } else if (!bluetoothEnabled) {
-                    Button(
-                        onClick = {
-                            context.enableBluetooth()
-                        },
-                        modifier = Modifier.fillMaxWidth().padding(10.dp),
-                    ) {
-                        Text(text = "Enable bluetooth")
-                    }
-                } else if (settings.printersMap.values.none { it.`interface` == Interface.BLUETOOTH }) {
-                    Text(
-                        "There are no paired Bluetooth printers, you need to pair a printer in the Bluetooth settings first.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(10.dp),
-                    )
-                    Button(
-                        onClick = {
-                            val intent = Intent(ACTION_BLUETOOTH_SETTINGS)
-                            context.startActivity(intent, null)
-                        },
-                        modifier = Modifier.fillMaxWidth().padding(10.dp),
-                    ) {
-                        Text(text = "Bluetooth settings")
-                    }
-                } else {
-                    settings.printersMap
-                        .filter { it.value.`interface` == Interface.BLUETOOTH }
-                        .forEach { (uuid, printerSettings) ->
-                            PrinterCard(
-                                context = context,
-                                uuid = uuid,
-                                settings = printerSettings,
-                                defaultPrinterAddress = settings.defaultPrinter,
-                            )
-                        }
-                }
-                Text(
-                    "USB printers",
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp),
-                )
-                if (settings.printersMap.values.none { it.`interface` == Interface.USB }) {
-                    Text(
-                        "There are no connected USB printers",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(10.dp),
-                    )
-                } else {
-                    settings.printersMap
-                        .filter { it.value.`interface` == Interface.USB }
-                        .forEach { (id, printerSettings) ->
-                            PrinterCard(
-                                context = context,
-                                uuid = id,
-                                settings = printerSettings,
-                                defaultPrinterAddress = settings.defaultPrinter,
-                            )
-                        }
-                }
-                Text(
-                    "Network printers",
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp),
-                )
-                settings.printersMap
-                    .filter { it.value.`interface` == Interface.TCP_IP }
-                    .forEach { (uuid, printerSettings) ->
+                    networkPrinters.forEach { (uuid, printerSettings) ->
                         PrinterCard(
                             context = context,
                             uuid = uuid,
                             settings = printerSettings,
                             defaultPrinterAddress = settings.defaultPrinter,
+                            icon = R.drawable.ic_printer_24,
                         )
                     }
-                Button(
-                    onClick = {
-                        context.addPrinterSetting()
-                    },
-                    modifier = Modifier.fillMaxWidth().padding(10.dp),
-                ) {
-                    Text(text = "Add a network printer")
+                    Button(
+                        onClick = {
+                            context.addPrinterSetting()
+                        },
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_add_24),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "Adicionar impressora de rede")
+                    }
+
+                    SectionTitle(icon = R.drawable.ic_bluetooth_24, text = "Impressoras Bluetooth")
+                    if (!bluetoothAllowed) {
+                        OutlinedButton(
+                            onClick = {
+                                context.requestBluetoothPermissions()
+                            },
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp),
+                        ) {
+                            Text(text = "Permitir acesso ao Bluetooth")
+                        }
+                    } else if (!bluetoothEnabled) {
+                        OutlinedButton(
+                            onClick = {
+                                context.enableBluetooth()
+                            },
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp),
+                        ) {
+                            Text(text = "Ligar o Bluetooth")
+                        }
+                    } else if (settings.printersMap.values.none { it.`interface` == Interface.BLUETOOTH }) {
+                        EmptyMessage(
+                            "Nenhuma impressora Bluetooth pareada. Pareie a impressora nas configurações de Bluetooth primeiro.",
+                        )
+                        OutlinedButton(
+                            onClick = {
+                                val intent = Intent(ACTION_BLUETOOTH_SETTINGS)
+                                context.startActivity(intent, null)
+                            },
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp),
+                        ) {
+                            Text(text = "Configurações de Bluetooth")
+                        }
+                    } else {
+                        settings.printersMap
+                            .filter { it.value.`interface` == Interface.BLUETOOTH }
+                            .forEach { (uuid, printerSettings) ->
+                                PrinterCard(
+                                    context = context,
+                                    uuid = uuid,
+                                    settings = printerSettings,
+                                    defaultPrinterAddress = settings.defaultPrinter,
+                                    icon = R.drawable.ic_bluetooth_24,
+                                )
+                            }
+                    }
+
+                    SectionTitle(icon = R.drawable.ic_usb_24, text = "Impressoras USB")
+                    if (settings.printersMap.values.none { it.`interface` == Interface.USB }) {
+                        EmptyMessage("Nenhuma impressora USB conectada.")
+                    } else {
+                        settings.printersMap
+                            .filter { it.value.`interface` == Interface.USB }
+                            .forEach { (id, printerSettings) ->
+                                PrinterCard(
+                                    context = context,
+                                    uuid = id,
+                                    settings = printerSettings,
+                                    defaultPrinterAddress = settings.defaultPrinter,
+                                    icon = R.drawable.ic_usb_24,
+                                )
+                            }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }

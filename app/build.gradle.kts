@@ -32,7 +32,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.farminos.print"
+        applicationId = "br.com.ds5.printservice"
         minSdk = 23
         targetSdk = 37
         versionCode = 35

@@ -1,4 +1,4 @@
-name: Build Signed Android APK
+name: Build Signed DS5 Printer Service APK
 
 on:
   push:
@@ -56,7 +56,7 @@ jobs:
 
           APK="app/build/outputs/apk/release/app-release-unsigned.apk"
           ALIGNED="$RUNNER_TEMP/app-release-aligned.apk"
-          SIGNED="app/build/outputs/apk/release/open-escpos-print-service-signed.apk"
+          SIGNED="app/build/outputs/apk/release/ds5-printer-service-signed.apk"
           TOOLS="$ANDROID_HOME/build-tools/37.0.0"
 
           test -f "$APK" || {
@@ -83,8 +83,8 @@ jobs:
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: open-escpos-print-service-signed-apk
-          path: app/build/outputs/apk/release/open-escpos-print-service-signed.apk
+          name: ds5-printer-service-signed-apk
+          path: app/build/outputs/apk/release/ds5-printer-service-signed.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -92,5 +92,5 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/release/open-escpos-print-service-signed.apk
+          files: app/build/outputs/apk/release/ds5-printer-service-signed.apk
           generate_release_notes: true

@@ -1,9 +1,20 @@
-# open-escpos-print-service
+# DS5 Printer Service
+
+Serviço de impressão Android da DS5 para impressoras de etiqueta e de cupom. É um fork do
+[open-escpos-print-service](https://github.com/farminos/open-escpos-print-service) com:
+
+- driver **ZPL**, para impressoras de etiqueta como a Elgin L42 Pro e as Zebra;
+- identidade visual DS5 (a mesma do DS5 Connect) e interface em português;
+- identificador próprio (`br.com.ds5.printservice`), que pode ficar instalado ao lado do app original.
+
+Os ícones são gerados a partir de `branding/ds5_symbol.png` com `python tools/ds5_branding.py`.
+
+The rest of this file is the upstream documentation.
 
 This is an Android app that provides a [PrintService](https://developer.android.com/reference/android/printservice/PrintService) for label and receipt printers.
 
 It supports ESC/POS printers like the Netum G5 or MTP-II.
-It also supports Citizen printers using the CPCL protocol.
+It also supports Citizen printers using the CPCL protocol, and ZPL label printers.
 
 You can connect printers through Bluetooth, USB or a TCP socket.
 

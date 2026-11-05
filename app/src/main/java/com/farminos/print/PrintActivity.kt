@@ -18,10 +18,8 @@ import android.webkit.WebView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.ui.Modifier
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
@@ -47,6 +45,9 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import java.io.InputStream
 import java.io.OutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 
 object SettingsSerializer : Serializer<Settings> {
@@ -143,14 +144,84 @@ class PrintActivity : ComponentActivity() {
     }
 
     fun printTestPage(uuid: String) {
-        val pages = JSONArray()
-        pages.put("<html><body><div style=\"font-size: 70vw; margin: 0 auto\">\uD83D\uDDA8️</div></body></html>")
         lifecycleScope.launch(Dispatchers.IO) {
             runOrToast {
+                val printer = settingsDataStore.data.first().printersMap[uuid]
+                val pages = JSONArray()
+                pages.put(testPageHtml(printer))
                 printHtml(pages, uuid)
             }
         }
     }
+
+    private fun testPageHtml(printer: PrinterSettings?): String {
+        val logo =
+            resources.openRawResource(R.drawable.ds5_symbol).use {
+                Base64.encodeToString(it.readBytes(), Base64.NO_WRAP)
+            }
+        val now = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.forLanguageTag("pt-BR")).format(Date())
+        val details =
+            if (printer == null) {
+                ""
+            } else {
+                val driver =
+                    when (printer.driver) {
+                        Driver.ESC_POS -> "ESC/POS"
+                        Driver.CPCL -> "CPCL"
+                        Driver.ZPL -> "ZPL"
+                        else -> printer.driver.name
+                    }
+                "<div class=\"big\">${escapeHtml(printer.name.ifBlank { "Sem nome" })}</div>" +
+                    "<div>${escapeHtml(printer.address)}</div>" +
+                    "<div>$driver · ${printer.dpi} dpi · ${printer.width} × ${printer.height} cm</div>"
+            }
+        // Everything is sized in "u" (a fraction of the printable width, in vw) so the page fits one
+        // label: u shrinks when the label is shorter than it is wide. The content is ~88u tall.
+        val contentWidth = printer?.let { it.width - it.marginLeft - it.marginRight } ?: 0f
+        val contentHeight = printer?.let { it.height - it.marginTop - it.marginBottom } ?: 0f
+        val isLabel = printer != null && printer.cut && contentWidth > 0 && contentHeight > 0
+        val ratio = if (isLabel) contentHeight / contentWidth else 1f
+        val u = minOf(1f, ratio)
+
+        fun vw(n: Float) = String.format(Locale.US, "%.3fvw", n * u)
+
+        // Slightly shorter than the label so rounding never spills a row onto a second label.
+        val bodyHeight =
+            if (isLabel) {
+                "height: ${String.format(Locale.US, "%.3fvw", ratio * 100f * 0.97f)}; " +
+                    "display: flex; flex-direction: column; justify-content: center; overflow: hidden;"
+            } else {
+                ""
+            }
+        return """
+            <html><head><meta charset="utf-8"><style>
+              * { box-sizing: border-box; }
+              body { font-family: sans-serif; margin: 0; padding: ${vw(3f)}; text-align: center; color: #000;
+                     line-height: 1.2; $bodyHeight }
+              img { height: ${vw(22f)}; align-self: center; }
+              div { font-size: ${vw(4.2f)}; margin: ${vw(0.5f)} 0; overflow-wrap: anywhere; }
+              .brand { font-size: ${vw(11f)}; font-weight: 300; letter-spacing: ${vw(1.5f)}; margin-top: ${vw(1.5f)}; }
+              .sub { font-size: ${vw(4.2f)}; letter-spacing: ${vw(1f)}; }
+              hr { width: 100%; border: 0; border-top: ${vw(0.6f)} solid #000; margin: ${vw(3f)} 0; }
+              .title { font-size: ${vw(6.5f)}; font-weight: bold; margin-bottom: ${vw(1.5f)}; }
+              .big { font-size: ${vw(5.5f)}; font-weight: bold; }
+            </style></head><body>
+              <img src="data:image/png;base64,$logo">
+              <div class="brand">DS5</div>
+              <div class="sub">PRINTER SERVICE</div>
+              <hr>
+              <div class="title">Teste de impressão</div>
+              $details
+              <div>$now</div>
+            </body></html>
+            """.trimIndent()
+    }
+
+    private fun escapeHtml(text: String): String =
+        text
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
 
     private fun updatePrintersList() {
         val allowed =
@@ -246,7 +317,7 @@ class PrintActivity : ComponentActivity() {
                 val content: String? = intent.getStringExtra("content")
                 if (content == null) {
                     Toast
-                        .makeText(this, "No content provided for printing", Toast.LENGTH_SHORT)
+                        .makeText(this, "Nenhum conteúdo recebido para imprimir", Toast.LENGTH_SHORT)
                         .show()
                     finish()
                 } else {
@@ -255,7 +326,7 @@ class PrintActivity : ComponentActivity() {
                             JSONArray(decompress(Base64.decode(content, Base64.DEFAULT)))
                         } catch (exception: Exception) {
                             Toast
-                                .makeText(this, "Could not decode url: ${exception.message}", Toast.LENGTH_SHORT)
+                                .makeText(this, "Não foi possível ler o link: ${exception.message}", Toast.LENGTH_SHORT)
                                 .show()
                             null
                         }
@@ -287,10 +358,9 @@ class PrintActivity : ComponentActivity() {
             }
 
             else -> {
+                enableEdgeToEdge()
                 setContent {
-                    Box(Modifier.safeDrawingPadding()) {
-                        SettingsScreen(context = this@PrintActivity)
-                    }
+                    SettingsScreen(context = this@PrintActivity)
                 }
             }
         }
@@ -316,11 +386,11 @@ class PrintActivity : ComponentActivity() {
         val settings = settingsDataStore.data.first()
         val uuid = settings.defaultPrinter
         if (uuid == "" || uuid == null) {
-            throw Exception("Please configure a default printer.")
+            throw Exception("Configure uma impressora padrão no DS5 Printer Service.")
         }
         val printerSettings = settings.printersMap[uuid]
         if (printerSettings == null) {
-            throw Exception("Could not find printer settings.")
+            throw Exception("Configuração da impressora não encontrada.")
         }
         useDriver(this, uuid, printerSettings) { driver ->
             uris.forEach {
@@ -345,11 +415,11 @@ class PrintActivity : ComponentActivity() {
         val settings = settingsDataStore.data.first()
         val uuid = printerUuid ?: settings.defaultPrinter
         if (uuid == "" || uuid == null) {
-            throw Exception("Please configure a default printer.")
+            throw Exception("Configure uma impressora padrão no DS5 Printer Service.")
         }
         val printerSettings = settings.printersMap[uuid]
         if (printerSettings == null) {
-            throw Exception("Could not find printer settings.")
+            throw Exception("Configuração da impressora não encontrada.")
         }
         val width = printerSettings.width
         val marginLeft = printerSettings.marginLeft
@@ -407,13 +477,13 @@ class PrintActivity : ComponentActivity() {
                     activity.bluetoothEnabled.update {
                         true
                     }
-                    Toast.makeText(context, "bluetooth is on.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Bluetooth ligado.", Toast.LENGTH_SHORT).show()
                 }
                 if (state == BluetoothAdapter.STATE_OFF) {
                     activity.bluetoothEnabled.update {
                         false
                     }
-                    Toast.makeText(context, "bluetooth is off.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Bluetooth desligado.", Toast.LENGTH_SHORT).show()
                 }
             }
         }
