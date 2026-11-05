@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.text.DecimalFormat
 
 data class Printer(
@@ -167,7 +168,7 @@ fun buildPrinterInfo(
     val df = DecimalFormat("#.#")
     val mediaSizeLabel = "${df.format(width)}x${df.format(height)}cm"
     return PrinterInfo
-        .Builder(id, if (name == "") "no name" else name, PrinterInfo.STATUS_IDLE)
+        .Builder(id, if (name == "") "Sem nome" else name, PrinterInfo.STATUS_IDLE)
         .setCapabilities(
             PrinterCapabilitiesInfo
                 .Builder(id)
@@ -241,20 +242,33 @@ class OpenEscPosPrintService : PrintService() {
         document: ParcelFileDescriptor?,
     ) {
         val printerId = info.printerId
-        val printer = printersMap[printerId] ?: throw Exception("No printer found")
+        val printer = printersMap[printerId] ?: throw Exception("Impressora não encontrada")
         if (document == null) {
-            throw Exception("No document found")
+            throw Exception("Documento não encontrado")
         }
         // copy to make the file seekable
         val copy = copyToTmpFile(this@OpenEscPosPrintService.cacheDir, document.fileDescriptor)
+        try {
+            printCopies(info, printer, copy)
+        } finally {
+            copy.delete()
+        }
+    }
+
+    private fun printCopies(
+        info: PrintJobInfo,
+        printer: PrinterWithSettingsAndInfo,
+        copy: File,
+    ) {
         val mediaSize = info.attributes.mediaSize
         val resolution = info.attributes.resolution
         if (mediaSize == null || resolution == null) {
-            throw Exception("No media size or resolution in print job info")
+            throw Exception("O trabalho de impressão não informou tamanho de papel ou resolução")
         }
         useDriver(this@OpenEscPosPrintService, printer.printer.uuid, printer.settings) {
-            for (i in 0 until info.copies) {
-                it.printDocument(copy)
+            // printDocument closes the descriptor it gets, so each copy reopens the file.
+            repeat(maxOf(1, info.copies)) { _ ->
+                it.printDocument(ParcelFileDescriptor.open(copy, ParcelFileDescriptor.MODE_READ_ONLY))
             }
         }
     }

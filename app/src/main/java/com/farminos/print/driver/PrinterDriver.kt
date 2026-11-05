@@ -101,11 +101,14 @@ abstract class PrinterDriver(
     abstract fun printBitmap(bitmap: Bitmap)
 
     fun printDocument(document: ParcelFileDescriptor) {
-        pdfToBitmaps(document, settings.dpi, settings.width, settings.height).forEach { page ->
-            val bitmap = if (settings.skipWhiteLinesAtPageEnd) bitmapCropWhiteEnd(page) else page
-            printBitmap(bitmap)
+        try {
+            pdfToBitmaps(document, settings.dpi, settings.width, settings.height).forEach { page ->
+                val bitmap = if (settings.skipWhiteLinesAtPageEnd) bitmapCropWhiteEnd(page) else page
+                printBitmap(bitmap)
+            }
+        } finally {
+            document.close()
         }
-        document.close()
     }
 
     abstract fun reset()

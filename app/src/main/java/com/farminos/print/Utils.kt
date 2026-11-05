@@ -157,10 +157,11 @@ fun bitmapCropWhiteEnd(bitmap: Bitmap): Bitmap {
     return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, height)
 }
 
+/** Copies [fd] to a temporary file in [cacheDir] so it can be reopened (and seeked) once per copy. */
 fun copyToTmpFile(
     cacheDir: File,
     fd: FileDescriptor,
-): ParcelFileDescriptor {
+): File {
     val outputFile = File.createTempFile(System.currentTimeMillis().toString(), null, cacheDir)
     val buffer = ByteArray(8192)
     var length: Int
@@ -171,7 +172,7 @@ fun copyToTmpFile(
             }
         }
     }
-    return ParcelFileDescriptor.open(outputFile, ParcelFileDescriptor.MODE_READ_ONLY)
+    return outputFile
 }
 
 fun addMargins(
@@ -195,7 +196,7 @@ fun addMargins(
 
 private const val INCH = 2.54F
 
-private fun cmToDots(
+fun cmToDots(
     cm: Float,
     dpi: Int,
 ): Int = ceil((cm / INCH) * dpi).toInt()

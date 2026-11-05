@@ -2,6 +2,7 @@ package com.farminos.print
 
 import com.farminos.print.driver.zplCompressGraphic
 import com.farminos.print.driver.zplGraphicLabel
+import com.farminos.print.driver.zplLabelSlices
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -51,5 +52,20 @@ class ZplCompressionTest {
         assertTrue(zpl.contains("^LL2"))
         assertTrue(zpl.contains("^FO0,0^GFA,4,4,2,FF,:^FS"))
         assertTrue(zpl.trimEnd().endsWith("^XZ"))
+    }
+
+    @Test
+    fun shorterImageStaysOneLabel() {
+        assertEquals(listOf(0 until 918), zplLabelSlices(918, 1039))
+    }
+
+    @Test
+    fun tallerImageIsSplitAcrossLabels() {
+        assertEquals(listOf(0 until 1039, 1039 until 1500), zplLabelSlices(1500, 1039))
+    }
+
+    @Test
+    fun continuousMediaIsNeverSplit() {
+        assertEquals(listOf(0 until 3000), zplLabelSlices(3000, 0))
     }
 }

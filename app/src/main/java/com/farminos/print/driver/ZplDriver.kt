@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import androidx.core.graphics.get
 import com.farminos.print.PrinterSettings
+import com.farminos.print.cmToDots
 import com.farminos.print.getDitheredBitmap
 import com.farminos.print.pixelsToCm
 import java.lang.Thread.sleep
@@ -113,6 +114,23 @@ fun zplBitmapToBits(bitmap: Bitmap): Pair<ByteArray, Int> {
     return Pair(data, bytesPerRow)
 }
 
+/**
+ * Splits an image [heightDots] tall into the rows of each label.
+ *
+ * With label media ([labelDots] > 0) every format must be exactly one label long: a ^LL that differs
+ * from the real label makes gap-sensing printers feed an extra label to find the next gap. Taller
+ * images are split across labels. With continuous media ([labelDots] = 0) the image is one format.
+ */
+fun zplLabelSlices(
+    heightDots: Int,
+    labelDots: Int,
+): List<IntRange> {
+    if (labelDots <= 0 || heightDots <= labelDots) {
+        return listOf(0 until heightDots)
+    }
+    return (0 until heightDots step labelDots).map { top -> top until minOf(top + labelDots, heightDots) }
+}
+
 /** Builds a complete ZPL label (^XA ... ^XZ) printing [data] as a single graphic at the origin. */
 fun zplGraphicLabel(
     data: ByteArray,
@@ -151,14 +169,25 @@ class ZplDriver(
 
     override fun printBitmap(bitmap: Bitmap) {
         val ditheredBitmap = getDitheredBitmap(bitmap, settings.dithering)
-        val (data, bytesPerRow) = zplBitmapToBits(ditheredBitmap)
-        delayForLength(0f)
-        socket.write(zplGraphicLabel(data, bytesPerRow, ditheredBitmap.width, ditheredBitmap.height))
-        delayForLength(pixelsToCm(ditheredBitmap.height, settings.dpi))
-        if (settings.cutDelay > 0) {
-            sleep((settings.cutDelay * 1000).toLong())
-            // Reset speed limit timer
-            lastTime = System.currentTimeMillis()
+        // "Label" media type: every format is exactly one label long (see zplLabelSlices).
+        val labelDots = if (settings.cut) cmToDots(settings.height, settings.dpi) else 0
+        zplLabelSlices(ditheredBitmap.height, labelDots).forEach { rows ->
+            val part =
+                if (rows.first == 0 && rows.count() == ditheredBitmap.height) {
+                    ditheredBitmap
+                } else {
+                    Bitmap.createBitmap(ditheredBitmap, 0, rows.first, ditheredBitmap.width, rows.count())
+                }
+            val (data, bytesPerRow) = zplBitmapToBits(part)
+            val lengthDots = maxOf(part.height, labelDots)
+            delayForLength(0f)
+            socket.write(zplGraphicLabel(data, bytesPerRow, part.width, lengthDots))
+            delayForLength(pixelsToCm(lengthDots, settings.dpi))
+            if (settings.cutDelay > 0) {
+                sleep((settings.cutDelay * 1000).toLong())
+                // Reset speed limit timer
+                lastTime = System.currentTimeMillis()
+            }
         }
     }
 
